@@ -25,12 +25,21 @@ tailwind.config = {
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
+  html { scroll-behavior:smooth; scroll-padding-top:80px; }
   body { background:#0B0E1A; font-family:'Noto Sans SC',sans-serif; }
   .glow-gold { box-shadow:0 0 40px rgba(245,197,24,.15); }
   .gold-grad { background:linear-gradient(135deg,#F5C518 0%,#FF8A00 100%); }
+  .gold-text-grad {
+    background:linear-gradient(120deg,#F5C518 20%,#FFF3B0 40%,#FF8A00 60%,#F5C518 80%);
+    background-size:200% auto;
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent; color:transparent;
+    animation:shine 3.5s linear infinite;
+  }
+  @keyframes shine { to { background-position:200% center; } }
   .card-hover:hover { transform:translateY(-4px); border-color:rgba(245,197,24,.4); }
   .card-hover { transition:all .3s ease; }
-  .progress-bar { transition:width 1s ease; }
+  .progress-bar { transition:width .8s cubic-bezier(.22,1,.36,1); }
   @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
   .float { animation:float 5s ease-in-out infinite; }
   @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
@@ -38,6 +47,50 @@ tailwind.config = {
   ::-webkit-scrollbar { width:8px; }
   ::-webkit-scrollbar-track { background:#0B0E1A; }
   ::-webkit-scrollbar-thumb { background:#232A44; border-radius:4px; }
+
+  /* 滚动渐入 */
+  .reveal { opacity:0; transform:translateY(28px); transition:opacity .7s ease, transform .7s cubic-bezier(.22,1,.36,1); }
+  .reveal.in { opacity:1; transform:translateY(0); }
+
+  /* 跑马灯 */
+  @keyframes marquee { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+  .marquee-track { display:inline-flex; white-space:nowrap; animation:marquee 28s linear infinite; }
+  .marquee-track:hover { animation-play-state:paused; }
+
+  /* 实时动态 */
+  @keyframes feedIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .feed-item { animation:feedIn .4s ease; }
+
+  /* 开奖转盘 */
+  @keyframes spinRing { to { transform:rotate(360deg); } }
+  .draw-ring { animation:spinRing 1.2s cubic-bezier(.4,0,.2,1) infinite; border-top-color:#F5C518 !important; }
+
+  /* 弹窗 */
+  #winModal { transition:opacity .3s ease; }
+  #winModal.hidden-modal { opacity:0; pointer-events:none; }
+  @keyframes popIn { 0%{transform:scale(.7); opacity:0} 60%{transform:scale(1.05)} 100%{transform:scale(1); opacity:1} }
+  .pop-in { animation:popIn .45s cubic-bezier(.22,1,.36,1) forwards; }
+  @keyframes glowPulse { 0%,100%{box-shadow:0 0 30px rgba(245,197,24,.3)} 50%{box-shadow:0 0 70px rgba(245,197,24,.6)} }
+  .glow-pulse { animation:glowPulse 1.6s ease-in-out infinite; }
+
+  /* 彩带画布 */
+  #confettiCanvas { position:fixed; inset:0; pointer-events:none; z-index:120; }
+
+  /* 返回顶部 */
+  #backTop { transition:opacity .3s, transform .3s; }
+  #backTop.hide { opacity:0; pointer-events:none; transform:translateY(12px); }
+
+  /* 移动端菜单 */
+  #mobileMenu { transition:max-height .35s ease, opacity .3s ease; max-height:0; opacity:0; overflow:hidden; }
+  #mobileMenu.open { max-height:320px; opacity:1; }
+
+  /* 进度条高亮脉冲 */
+  @keyframes barPulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.35)} }
+  .bar-hot { animation:barPulse 1.4s ease-in-out infinite; }
+
+  /* 参与按钮点击反馈 */
+  .join-btn:active { transform:scale(.94); }
+  .join-btn { transition:transform .12s ease, opacity .2s; }
 </style>
 </head>
 <body class="text-gray-200 antialiased">
@@ -54,38 +107,55 @@ tailwind.config = {
       <a href="#pools" class="hover:text-gold transition">夺宝奖池</a>
       <a href="#how" class="hover:text-gold transition">玩法</a>
       <a href="#trust" class="hover:text-gold transition">透明可信</a>
+      <a href="#winners" class="hover:text-gold transition">中奖墙</a>
       <a href="#roadmap" class="hover:text-gold transition">路线图</a>
       <a href="#faq" class="hover:text-gold transition">FAQ</a>
     </div>
-    <button id="connectBtn" class="gold-grad text-black font-bold text-sm px-5 py-2 rounded-full hover:opacity-90 transition">
-      连接钱包
-    </button>
+    <div class="flex items-center gap-3">
+      <button id="connectBtn" class="gold-grad text-black font-bold text-sm px-5 py-2 rounded-full hover:opacity-90 transition">
+        连接钱包
+      </button>
+      <button id="menuBtn" class="md:hidden text-gray-300 p-2" aria-label="菜单">
+        <svg id="menuIconOpen" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg id="menuIconClose" class="hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="mobileMenu" class="md:hidden bg-night/95 backdrop-blur-md border-t border-line">
+    <div class="px-4 py-3 flex flex-col text-sm text-gray-300">
+      <a href="#pools" class="mob-link py-3 border-b border-line/50">🔥 夺宝奖池</a>
+      <a href="#how" class="mob-link py-3 border-b border-line/50">📖 玩法</a>
+      <a href="#trust" class="mob-link py-3 border-b border-line/50">🛡️ 透明可信</a>
+      <a href="#winners" class="mob-link py-3 border-b border-line/50">🏆 中奖墙</a>
+      <a href="#roadmap" class="mob-link py-3 border-b border-line/50">🗺️ 路线图</a>
+      <a href="#faq" class="mob-link py-3">❓ FAQ</a>
+    </div>
   </div>
 </nav>
 
 <!-- ============ HERO ============ -->
-<header class="relative pt-32 pb-20 px-4 overflow-hidden">
+<header class="relative pt-32 pb-16 px-4 overflow-hidden">
   <div class="absolute inset-0 shimmer pointer-events-none"></div>
   <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gold/10 rounded-full blur-[120px] pointer-events-none"></div>
   <div class="max-w-4xl mx-auto text-center relative">
     <div class="float inline-block mb-6 text-6xl">🎰</div>
     <h1 class="text-4xl md:text-6xl font-black text-white leading-tight mb-6">
-      1 <span class="text-gold">USDT</span><br>
-      抱走整池大奖
+      1 <span class="gold-text-grad">USDT</span><br>
+      抱走<span class="gold-text-grad">整池大奖</span>
     </h1>
     <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10">
       基于 BSC 的链上夺宝协议。资金由智能合约托管，Chainlink VRF 可验证随机开奖，
       每一分钱流向链上可查 —— 这才是夺宝该有的样子。
     </p>
-    <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-      <a href="#pools" class="gold-grad text-black font-bold px-8 py-4 rounded-full hover:opacity-90 transition text-center">
+    <div class="flex flex-col sm:flex-row gap-4 justify-center mb-14">
+      <a href="#pools" class="gold-grad text-black font-bold px-8 py-4 rounded-full hover:opacity-90 transition text-center glow-pulse">
         立即参与夺宝 →
       </a>
       <a href="#how" class="border border-line px-8 py-4 rounded-full hover:border-gold/50 transition text-center text-gray-300">
         了解玩法
       </a>
     </div>
-    <div class="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+    <div class="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-10">
       <div class="bg-panel border border-line rounded-2xl p-5 glow-gold">
         <div class="text-2xl md:text-3xl font-black text-gold" data-count="128490">0</div>
         <div class="text-xs text-gray-500 mt-1">累计开奖金额 (USDT)</div>
@@ -99,13 +169,17 @@ tailwind.config = {
         <div class="text-xs text-gray-500 mt-1">已开奖期数</div>
       </div>
     </div>
+    <!-- 实时参与跑马灯 -->
+    <div class="max-w-2xl mx-auto bg-panel/60 border border-line rounded-full px-4 py-2 overflow-hidden">
+      <div class="marquee-track text-xs text-gray-400" id="ticker"></div>
+    </div>
   </div>
 </header>
 
 <!-- ============ POOLS ============ -->
 <section id="pools" class="py-20 px-4">
   <div class="max-w-6xl mx-auto">
-    <div class="text-center mb-12">
+    <div class="text-center mb-12 reveal">
       <h2 class="text-3xl md:text-4xl font-black text-white mb-3">🔥 进行中的夺宝</h2>
       <p class="text-gray-500">凑满即开奖，早参与早中奖</p>
     </div>
@@ -116,23 +190,23 @@ tailwind.config = {
 <!-- ============ HOW ============ -->
 <section id="how" class="py-20 px-4 bg-panel/50 border-y border-line">
   <div class="max-w-6xl mx-auto">
-    <div class="text-center mb-14">
+    <div class="text-center mb-14 reveal">
       <h2 class="text-3xl md:text-4xl font-black text-white mb-3">三步夺宝</h2>
       <p class="text-gray-500">比中心化夺宝更简单，还更透明</p>
     </div>
     <div class="grid md:grid-cols-3 gap-8">
-      <div class="text-center">
-        <div class="w-20 h-20 mx-auto rounded-2xl gold-grad flex items-center justify-center text-4xl mb-5 font-black text-black">1</div>
+      <div class="text-center reveal">
+        <div class="w-20 h-20 mx-auto rounded-2xl gold-grad flex items-center justify-center text-4xl mb-5 font-black text-black float">1</div>
         <h3 class="text-xl font-bold text-white mb-2">选池下单</h3>
         <p class="text-gray-400 text-sm leading-relaxed">挑选心仪的奖品池，每份 1 USDT，每地址限购防包场。支持 USDT / BNB 支付。</p>
       </div>
-      <div class="text-center">
-        <div class="w-20 h-20 mx-auto rounded-2xl gold-grad flex items-center justify-center text-4xl mb-5 font-black text-black">2</div>
+      <div class="text-center reveal" style="transition-delay:.1s">
+        <div class="w-20 h-20 mx-auto rounded-2xl gold-grad flex items-center justify-center text-4xl mb-5 font-black text-black float" style="animation-delay:.6s">2</div>
         <h3 class="text-xl font-bold text-white mb-2">凑满开奖</h3>
         <p class="text-gray-400 text-sm leading-relaxed">奖池凑满目标份数后自动触发开奖请求，无需任何人手动操作，合约自动执行。</p>
       </div>
-      <div class="text-center">
-        <div class="w-20 h-20 mx-auto rounded-2xl gold-grad flex items-center justify-center text-4xl mb-5 font-black text-black">3</div>
+      <div class="text-center reveal" style="transition-delay:.2s">
+        <div class="w-20 h-20 mx-auto rounded-2xl gold-grad flex items-center justify-center text-4xl mb-5 font-black text-black float" style="animation-delay:1.2s">3</div>
         <h3 class="text-xl font-bold text-white mb-2">VRF 出结果</h3>
         <p class="text-gray-400 text-sm leading-relaxed">Chainlink VRF 生成可验证随机数，中奖者瞬间到账 95%+ 奖池，可在链上亲自验证。</p>
       </div>
@@ -143,27 +217,27 @@ tailwind.config = {
 <!-- ============ TRUST ============ -->
 <section id="trust" class="py-20 px-4">
   <div class="max-w-6xl mx-auto">
-    <div class="text-center mb-12">
+    <div class="text-center mb-12 reveal">
       <h2 class="text-3xl md:text-4xl font-black text-white mb-3">为什么敢玩？</h2>
       <p class="text-gray-500">当年一元夺宝死在哪，我们就把命门钉死在哪</p>
     </div>
     <div class="grid md:grid-cols-2 gap-6">
-      <div class="bg-panel border border-line rounded-2xl p-8 card-hover">
+      <div class="bg-panel border border-line rounded-2xl p-8 card-hover reveal">
         <div class="text-4xl mb-4">🔒</div>
         <h3 class="text-xl font-bold text-white mb-2">合约托管，平台碰不到钱</h3>
         <p class="text-gray-400 text-sm leading-relaxed">所有参与资金直接进入已开源、已审计的智能合约，团队没有私钥控制权，物理上不可能跑路或挪用。中奖资金由合约自动划转。</p>
       </div>
-      <div class="bg-panel border border-line rounded-2xl p-8 card-hover">
+      <div class="bg-panel border border-line rounded-2xl p-8 card-hover reveal" style="transition-delay:.08s">
         <div class="text-4xl mb-4">🎲</div>
         <h3 class="text-xl font-bold text-white mb-2">VRF 随机数，开奖可验证</h3>
         <p class="text-gray-400 text-sm leading-relaxed">采用 Chainlink VRF v2.5，随机数由预言机密码学生成并附带证明，任何人都可以在链上复核开奖结果，杜绝暗箱操作。</p>
       </div>
-      <div class="bg-panel border border-line rounded-2xl p-8 card-hover">
+      <div class="bg-panel border border-line rounded-2xl p-8 card-hover reveal" style="transition-delay:.16s">
         <div class="text-4xl mb-4">👁️</div>
         <h3 class="text-xl font-bold text-white mb-2">全程链上透明</h3>
         <p class="text-gray-400 text-sm leading-relaxed">每一份参与记录、每一次开奖、每一笔分佣都写在链上，BSCScan 上公开可查。没有"内部名单"，没有机器人中奖。</p>
       </div>
-      <div class="bg-panel border border-line rounded-2xl p-8 card-hover">
+      <div class="bg-panel border border-line rounded-2xl p-8 card-hover reveal" style="transition-delay:.24s">
         <div class="text-4xl mb-4">🛡️</div>
         <h3 class="text-xl font-bold text-white mb-2">反女巫 + 限购机制</h3>
         <p class="text-gray-400 text-sm leading-relaxed">每地址每期限购，配合钱包年龄与行为评分过滤批量小号，保证散户真实的中奖概率，不让科学家包场。</p>
@@ -171,7 +245,7 @@ tailwind.config = {
     </div>
 
     <!-- 分佣结构 -->
-    <div class="mt-12 bg-panel border border-line rounded-2xl p-8">
+    <div class="mt-12 bg-panel border border-line rounded-2xl p-8 reveal">
       <h3 class="text-xl font-bold text-white mb-6 text-center">💰 奖池分佣结构（合约写死，不可篡改）</h3>
       <div class="flex h-14 rounded-xl overflow-hidden text-sm font-bold">
         <div class="bg-gold text-black flex items-center justify-center" style="width:95%">95% 中奖者</div>
@@ -180,7 +254,7 @@ tailwind.config = {
       </div>
       <div class="flex justify-between text-xs text-gray-500 mt-3 px-1">
         <span>🎯 95% → 中奖钱包</span>
-        <span>🏗️ 3% → 平台运营（审计、服务器）</span>
+        <span>🏗️ 3% → 平台运营</span>
         <span>🤝 2% → 邀请返佣</span>
       </div>
     </div>
@@ -188,13 +262,13 @@ tailwind.config = {
 </section>
 
 <!-- ============ RECENT WINNERS ============ -->
-<section class="py-20 px-4 bg-panel/50 border-y border-line">
+<section id="winners" class="py-20 px-4 bg-panel/50 border-y border-line">
   <div class="max-w-6xl mx-auto">
-    <div class="text-center mb-12">
+    <div class="text-center mb-12 reveal">
       <h2 class="text-3xl md:text-4xl font-black text-white mb-3">🏆 最近中奖记录</h2>
       <p class="text-gray-500">链上可查，点击地址直达 BSCScan</p>
     </div>
-    <div class="bg-night border border-line rounded-2xl overflow-hidden">
+    <div class="bg-night border border-line rounded-2xl overflow-hidden reveal">
       <div class="hidden md:grid grid-cols-5 text-xs text-gray-500 px-6 py-4 border-b border-line">
         <span>奖品</span><span>中奖地址</span><span>投入份数</span><span>赢取金额</span><span class="text-right">开奖 TX</span>
       </div>
@@ -206,11 +280,11 @@ tailwind.config = {
 <!-- ============ ROADMAP ============ -->
 <section id="roadmap" class="py-20 px-4">
   <div class="max-w-4xl mx-auto">
-    <div class="text-center mb-14">
+    <div class="text-center mb-14 reveal">
       <h2 class="text-3xl md:text-4xl font-black text-white mb-3">🗺️ 路线图</h2>
     </div>
     <div class="space-y-6">
-      <div class="flex gap-5">
+      <div class="flex gap-5 reveal">
         <div class="flex flex-col items-center">
           <div class="w-10 h-10 rounded-full gold-grad flex items-center justify-center font-black text-black shrink-0">1</div>
           <div class="w-px flex-1 bg-line mt-2"></div>
@@ -221,7 +295,7 @@ tailwind.config = {
           <p class="text-gray-400 text-sm">夺宝主合约 + VRF 集成开发，送 CertiK / SlowMist 安全审计。</p>
         </div>
       </div>
-      <div class="flex gap-5">
+      <div class="flex gap-5 reveal">
         <div class="flex flex-col items-center">
           <div class="w-10 h-10 rounded-full border-2 border-gold text-gold flex items-center justify-center font-black shrink-0">2</div>
           <div class="w-px flex-1 bg-line mt-2"></div>
@@ -232,7 +306,7 @@ tailwind.config = {
           <p class="text-gray-400 text-sm">公开测试 + 漏洞赏金计划，社区早期用户白名单。</p>
         </div>
       </div>
-      <div class="flex gap-5">
+      <div class="flex gap-5 reveal">
         <div class="flex flex-col items-center">
           <div class="w-10 h-10 rounded-full border-2 border-line text-gray-500 flex items-center justify-center font-black shrink-0">3</div>
           <div class="w-px flex-1 bg-line mt-2"></div>
@@ -243,7 +317,7 @@ tailwind.config = {
           <p class="text-gray-400 text-sm">正式开放夺宝，上线 2% 邀请返佣体系。</p>
         </div>
       </div>
-      <div class="flex gap-5">
+      <div class="flex gap-5 reveal">
         <div class="flex flex-col items-center">
           <div class="w-10 h-10 rounded-full border-2 border-line text-gray-500 flex items-center justify-center font-black shrink-0">4</div>
         </div>
@@ -260,32 +334,32 @@ tailwind.config = {
 <!-- ============ FAQ ============ -->
 <section id="faq" class="py-20 px-4 bg-panel/50 border-t border-line">
   <div class="max-w-3xl mx-auto">
-    <div class="text-center mb-12">
+    <div class="text-center mb-12 reveal">
       <h2 class="text-3xl md:text-4xl font-black text-white mb-3">常见问题</h2>
     </div>
     <div class="space-y-3" id="faqList">
-      <div class="bg-night border border-line rounded-xl">
+      <div class="bg-night border border-line rounded-xl reveal">
         <button class="faq-toggle w-full flex justify-between items-center px-6 py-4 text-left font-bold text-white">
           怎么保证开奖公平？
           <span class="text-gold transition-transform">▾</span>
         </button>
         <div class="faq-body hidden px-6 pb-4 text-sm text-gray-400 leading-relaxed">开奖使用 Chainlink VRF（可验证随机函数），随机数由去中心化预言机网络生成并附带密码学证明，合约验证通过才会确定中奖者。整个过程无需平台介入，任何人都可以在 BSCScan 和 Chainlink 上复核。</div>
       </div>
-      <div class="bg-night border border-line rounded-xl">
+      <div class="bg-night border border-line rounded-xl reveal">
         <button class="faq-toggle w-full flex justify-between items-center px-6 py-4 text-left font-bold text-white">
           没中奖钱去哪了？
           <span class="text-gold transition-transform">▾</span>
         </button>
         <div class="faq-body hidden px-6 pb-4 text-sm text-gray-400 leading-relaxed">未中奖的参与资金用于凑齐奖品成本（这就是"夺宝"的玩法本质：大家凑钱买奖品，抽一个人拿走）。平台只从奖池中抽取 3% 用于运营，此比例写死在合约里，无法更改。</div>
       </div>
-      <div class="bg-night border border-line rounded-xl">
+      <div class="bg-night border border-line rounded-xl reveal">
         <button class="faq-toggle w-full flex justify-between items-center px-6 py-4 text-left font-bold text-white">
           平台会不会跑路？
           <span class="text-gold transition-transform">▾</span>
         </button>
         <div class="faq-body hidden px-6 pb-4 text-sm text-gray-400 leading-relaxed">不会。资金托管在已开源的智能合约中，合约没有给团队留提款后门，中奖后由合约自动打款。即使网站关闭，用户仍可直接与合约交互查询和领取。</div>
       </div>
-      <div class="bg-night border border-line rounded-xl">
+      <div class="bg-night border border-line rounded-xl reveal">
         <button class="faq-toggle w-full flex justify-between items-center px-6 py-4 text-left font-bold text-white">
           支持什么钱包和币种？
           <span class="text-gold transition-transform">▾</span>
@@ -299,29 +373,50 @@ tailwind.config = {
 <!-- ============ CTA ============ -->
 <section class="py-24 px-4 text-center relative overflow-hidden">
   <div class="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-gold/10 rounded-full blur-[120px] pointer-events-none"></div>
-  <div class="max-w-2xl mx-auto relative">
-    <div class="text-5xl mb-6">🍀</div>
+  <div class="max-w-2xl mx-auto relative reveal">
+    <div class="text-5xl mb-6 float inline-block">🍀</div>
     <h2 class="text-3xl md:text-5xl font-black text-white mb-4">下一位幸运儿，<br class="md:hidden">可能就是你</h2>
     <p class="text-gray-400 mb-8">1 USDT，一次机会，链上透明可查。</p>
-    <a href="#pools" class="inline-block gold-grad text-black font-bold px-10 py-4 rounded-full hover:opacity-90 transition text-lg">
+    <a href="#pools" class="inline-block gold-grad text-black font-bold px-10 py-4 rounded-full hover:opacity-90 transition text-lg glow-pulse">
       开始夺宝 →
     </a>
   </div>
 </section>
 
 <!-- ============ FOOTER ============ -->
-<footer class="border-t border-line py-10 px-4">
+<footer class="border-t border-line py-12 px-4">
   <div class="max-w-6xl mx-auto">
-    <div class="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
-      <div class="flex items-center gap-2">
-        <span class="text-xl">🎁</span>
-        <span class="font-black text-white">Lucky<span class="text-gold">Box</span></span>
+    <div class="grid md:grid-cols-4 gap-8 mb-10">
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-xl">🎁</span>
+          <span class="font-black text-white">Lucky<span class="text-gold">Box</span></span>
+        </div>
+        <p class="text-xs text-gray-500 leading-relaxed">基于 BSC 的链上夺宝协议，合约托管 + VRF 可验证开奖，让夺宝重新变得可信。</p>
       </div>
-      <div class="flex gap-6 text-sm text-gray-500">
-        <a href="#" class="hover:text-gold transition">X / Twitter</a>
-        <a href="#" class="hover:text-gold transition">Telegram</a>
-        <a href="#" class="hover:text-gold transition">GitHub</a>
-        <a href="#" class="hover:text-gold transition">合约源码</a>
+      <div>
+        <h4 class="text-white font-bold text-sm mb-3">产品</h4>
+        <div class="flex flex-col gap-2 text-sm text-gray-500">
+          <a href="#pools" class="hover:text-gold transition">夺宝奖池</a>
+          <a href="#how" class="hover:text-gold transition">玩法说明</a>
+          <a href="#winners" class="hover:text-gold transition">中奖记录</a>
+        </div>
+      </div>
+      <div>
+        <h4 class="text-white font-bold text-sm mb-3">协议</h4>
+        <div class="flex flex-col gap-2 text-sm text-gray-500">
+          <a href="#trust" class="hover:text-gold transition">安全机制</a>
+          <a href="#roadmap" class="hover:text-gold transition">路线图</a>
+          <a href="#" class="hover:text-gold transition">合约源码 ↗</a>
+        </div>
+      </div>
+      <div>
+        <h4 class="text-white font-bold text-sm mb-3">社区</h4>
+        <div class="flex flex-col gap-2 text-sm text-gray-500">
+          <a href="#" class="hover:text-gold transition">X / Twitter ↗</a>
+          <a href="#" class="hover:text-gold transition">Telegram ↗</a>
+          <a href="#" class="hover:text-gold transition">GitHub ↗</a>
+        </div>
       </div>
     </div>
     <div class="text-xs text-gray-600 leading-relaxed border-t border-line pt-6">
@@ -332,21 +427,39 @@ tailwind.config = {
   </div>
 </footer>
 
+<!-- ============ 实时参与动态 ============ -->
+<div id="liveFeed" class="fixed bottom-5 left-4 z-[90] flex flex-col gap-2 pointer-events-none max-w-[280px]"></div>
+
+<!-- ============ 返回顶部 ============ -->
+<button id="backTop" class="hide fixed bottom-5 right-4 z-[90] w-11 h-11 rounded-full bg-panel border border-gold/40 text-gold flex items-center justify-center hover:bg-gold/10 transition" aria-label="返回顶部">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<!-- ============ 开奖弹窗 ============ -->
+<div id="winModal" class="hidden-modal fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+  <div id="winModalBox" class="bg-panel border border-gold/30 rounded-3xl p-8 max-w-sm w-full text-center"></div>
+</div>
+
+<!-- ============ 彩带 ============ -->
+<canvas id="confettiCanvas"></canvas>
+
 <!-- ============ TOAST ============ -->
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-panel border border-gold/40 text-white text-sm px-6 py-3 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 z-[100]"></div>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-panel border border-gold/40 text-white text-sm px-6 py-3 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 z-[100] max-w-[90vw] text-center"></div>
 
 <script>
 /* ==================== 演示数据 ==================== */
+const MY_ADDR = '0x7a3f...9e21';
+
 const pools = [
   { id: 1, icon: '📱', name: 'iPhone 17 Pro Max 256G', price: 1199, sold: 1073, tag: '热卖', tagColor: 'text-red-400 border-red-400/40' },
   { id: 2, icon: '💻', name: 'MacBook Air M4 15寸', price: 1499, sold: 642, tag: '新品', tagColor: 'text-gold border-gold/40' },
-  { id: 3, icon: '🎮', name: 'PS6 Pro 光驱版', price: 699, sold: 88, tag: '即将满员', tagColor: 'text-green-400 border-green-400/40' },
+  { id: 3, icon: '🎮', name: 'PS6 Pro 光驱版', price: 699, sold: 681, tag: '即将满员', tagColor: 'text-green-400 border-green-400/40' },
   { id: 4, icon: '🪙', name: '1 BNB（等值 680 USDT）', price: 680, sold: 511, tag: '加密原住民', tagColor: 'text-purple-400 border-purple-400/40' },
   { id: 5, icon: '⌚', name: 'Apple Watch Ultra 3', price: 799, sold: 233, tag: '新品', tagColor: 'text-gold border-gold/40' },
   { id: 6, icon: '🎧', name: 'AirPods Pro 3 + Vision Air', price: 899, sold: 745, tag: '热卖', tagColor: 'text-red-400 border-red-400/40' },
 ];
 
-const winners = [
+let winners = [
   { prize: '📱 iPhone 17 Pro', addr: '0x7a3f...9e21', shares: 5, win: '1,139', tx: '0xabc1' },
   { prize: '🪙 1 BNB', addr: '0x51bc...77aa', shares: 12, win: '646', tx: '0xdef2' },
   { prize: '💻 MacBook Air M4', addr: '0x9d02...3f8b', shares: 2, win: '1,424', tx: '0x345c' },
@@ -354,34 +467,56 @@ const winners = [
   { prize: '🎧 AirPods 套装', addr: '0x12ab...6e77', shares: 1, win: '854', tx: '0xa01f' },
 ];
 
-/* ==================== 奖池渲染 ==================== */
+const myShares = {}; // poolId -> 我的份数
 let connected = false;
 
+/* ==================== 工具 ==================== */
+function randAddr() {
+  const hex = '0123456789abcdef';
+  let a = '0x';
+  for (let i = 0; i < 4; i++) a += hex[Math.floor(Math.random() * 16)];
+  a += '...';
+  for (let i = 0; i < 4; i++) a += hex[Math.floor(Math.random() * 16)];
+  return a;
+}
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const fmt = n => n.toLocaleString('en-US');
+
+/* ==================== 奖池渲染 ==================== */
 function renderPools() {
   const grid = document.getElementById('poolGrid');
-  grid.innerHTML = pools.map(p => {
+  grid.innerHTML = pools.map((p, idx) => {
     const pct = Math.min(100, Math.round(p.sold / p.price * 100));
-    const remain = p.price - p.sold;
+    const remain = Math.max(0, p.price - p.sold);
+    const odd = (100 / p.price).toFixed(2);
+    const my = myShares[p.id] || 0;
+    const hot = pct >= 85;
     return `
-    <div class="bg-panel border border-line rounded-2xl p-6 card-hover flex flex-col">
+    <div class="bg-panel border ${hot ? 'border-gold/40 glow-gold' : 'border-line'} rounded-2xl p-6 card-hover flex flex-col reveal in">
       <div class="flex justify-between items-start mb-4">
         <div class="text-4xl">${p.icon}</div>
-        <span class="text-[10px] px-2 py-1 rounded-full border ${p.tagColor}">${p.tag}</span>
+        <div class="flex flex-col items-end gap-1">
+          <span class="text-[10px] px-2 py-1 rounded-full border ${p.tagColor}">${p.tag}</span>
+          ${my > 0 ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-gold/15 text-gold">我的 ${my} 份</span>` : ''}
+        </div>
       </div>
       <h3 class="text-white font-bold mb-1">${p.name}</h3>
-      <p class="text-gray-500 text-sm mb-4">目标 <span class="text-gold font-bold">${p.price}</span> USDT · 每份 1 USDT</p>
+      <p class="text-gray-500 text-sm mb-1">目标 <span class="text-gold font-bold">${fmt(p.price)}</span> USDT · 每份 1 USDT</p>
+      <p class="text-xs text-gray-600 mb-4">单份中奖率 ≈ <span class="text-gold/80">${odd}%</span></p>
       <div class="w-full h-3 bg-night rounded-full overflow-hidden mb-2">
-        <div class="progress-bar h-full gold-grad rounded-full" style="width:${pct}%"></div>
+        <div class="progress-bar h-full gold-grad rounded-full ${hot ? 'bar-hot' : ''}" style="width:${pct}%"></div>
       </div>
       <div class="flex justify-between text-xs text-gray-500 mb-5">
-        <span>已参与 <b class="text-white">${p.sold}</b> / ${p.price}</span>
-        <span class="${remain < 100 ? 'text-green-400' : ''}">剩 ${remain} 份</span>
+        <span>已参与 <b class="text-white">${fmt(p.sold)}</b> / ${fmt(p.price)}</span>
+        <span class="${remain < 100 ? 'text-green-400 font-bold' : ''}">${remain > 0 ? '剩 ' + fmt(remain) + ' 份' : '已满员'}</span>
       </div>
+      ${remain > 0 ? `
       <div class="mt-auto flex gap-2">
-        <button onclick="joinPool(${p.id}, 1)" class="flex-1 border border-gold/40 text-gold font-bold py-2.5 rounded-xl hover:bg-gold/10 transition text-sm">1 份</button>
-        <button onclick="joinPool(${p.id}, 5)" class="flex-1 border border-gold/40 text-gold font-bold py-2.5 rounded-xl hover:bg-gold/10 transition text-sm">5 份</button>
-        <button onclick="joinPool(${p.id}, 10)" class="flex-1 gold-grad text-black font-bold py-2.5 rounded-xl hover:opacity-90 transition text-sm">10 份</button>
-      </div>
+        <button onclick="joinPool(${p.id}, 1)" class="join-btn flex-1 border border-gold/40 text-gold font-bold py-2.5 rounded-xl hover:bg-gold/10 transition text-sm">1 份</button>
+        <button onclick="joinPool(${p.id}, 5)" class="join-btn flex-1 border border-gold/40 text-gold font-bold py-2.5 rounded-xl hover:bg-gold/10 transition text-sm">5 份</button>
+        <button onclick="joinPool(${p.id}, 10)" class="join-btn flex-1 gold-grad text-black font-bold py-2.5 rounded-xl hover:opacity-90 transition text-sm">10 份</button>
+      </div>` : `
+      <div class="mt-auto text-center text-xs text-gray-500 py-2.5 border border-line rounded-xl">⏳ 等待 VRF 开奖…</div>`}
     </div>`;
   }).join('');
 }
@@ -390,6 +525,7 @@ function renderPools() {
 function joinPool(id, shares) {
   if (!connected) {
     showToast('⚠️ 请先连接钱包（演示站点）');
+    pulseConnectBtn();
     return;
   }
   const p = pools.find(x => x.id === id);
@@ -397,9 +533,82 @@ function joinPool(id, shares) {
   const actual = Math.min(shares, remain);
   if (actual <= 0) { showToast('该奖池已满员，等待开奖'); return; }
   p.sold += actual;
+  myShares[id] = (myShares[id] || 0) + actual;
   renderPools();
+  miniConfetti();
   showToast(`🎉 成功参与 ${p.icon} ${p.name} × ${actual} 份（演示）`);
+  if (p.sold >= p.price) startDraw(p, true);
 }
+
+/* ==================== 开奖流程 ==================== */
+function startDraw(p, userJoined) {
+  const my = myShares[p.id] || 0;
+  const modal = document.getElementById('winModal');
+  const box = document.getElementById('winModalBox');
+
+  // 阶段1：转盘动画
+  box.className = 'bg-panel border border-gold/30 rounded-3xl p-8 max-w-sm w-full text-center pop-in';
+  box.innerHTML = `
+    <div class="w-24 h-24 mx-auto rounded-full border-4 border-line draw-ring mb-6"></div>
+    <h3 class="text-white font-bold text-xl mb-2">🎲 VRF 开奖中</h3>
+    <p class="text-gray-400 text-sm">Chainlink 预言机正在生成可验证随机数…</p>
+  `;
+  modal.classList.remove('hidden-modal');
+
+  setTimeout(() => {
+    // 计算中奖者：按份数加权，包含我的份数
+    const userWinChance = p.sold > 0 ? my / p.sold : 0;
+    const iWon = userJoined && Math.random() < userWinChance;
+    const winAddr = iWon ? MY_ADDR : randAddr();
+    const winAmount = Math.round(p.price * 0.95);
+    const tx = '0x' + Math.random().toString(16).slice(2, 6);
+
+    // 写入中奖墙
+    winners.unshift({ prize: p.icon + ' ' + p.name, addr: winAddr, shares: iWon ? my : Math.ceil(Math.random() * 10), win: fmt(winAmount), tx });
+    winners = winners.slice(0, 8);
+    renderWinners();
+
+    // 阶段2：结果
+    if (iWon) {
+      box.className = 'bg-panel border border-gold rounded-3xl p-8 max-w-sm w-full text-center pop-in glow-pulse';
+      box.innerHTML = `
+        <div class="text-6xl mb-4">🏆</div>
+        <h3 class="text-3xl font-black gold-text-grad mb-2">恭喜中奖！</h3>
+        <p class="text-gray-300 text-sm mb-1">${p.icon} ${p.name}</p>
+        <p class="text-gold text-2xl font-black mb-4">+${fmt(winAmount)} USDT</p>
+        <p class="text-xs text-gray-500 mb-6 font-mono">奖金已由合约转入 ${MY_ADDR}</p>
+        <button onclick="closeWinModal()" class="gold-grad text-black font-bold px-8 py-3 rounded-full w-full">收下奖金 🎉</button>
+      `;
+      bigConfetti();
+      pushFeed(`🏆 <b class="text-gold">${winAddr}</b> 中得 ${p.icon} ${p.name}！`, true);
+    } else {
+      box.className = 'bg-panel border border-line rounded-3xl p-8 max-w-sm w-full text-center pop-in';
+      box.innerHTML = `
+        <div class="text-5xl mb-4">🍀</div>
+        <h3 class="text-xl font-bold text-white mb-2">差一点点！</h3>
+        <p class="text-gray-400 text-sm mb-1">本期中奖者</p>
+        <p class="text-gold font-mono text-sm mb-1">${winAddr}</p>
+        <p class="text-gray-500 text-xs mb-1">赢取 <span class="text-green-400 font-bold">${fmt(winAmount)} USDT</span> · 投入了 ${my} 份</p>
+        <p class="text-xs text-gray-600 mb-6">好运正在路上，再来一期？</p>
+        <button onclick="closeWinModal()" class="gold-grad text-black font-bold px-8 py-3 rounded-full w-full">再夺一次 →</button>
+      `;
+      pushFeed(`🏆 <b class="text-gold">${winAddr}</b> 中得 ${p.icon} ${p.name}！`, true);
+    }
+
+    // 重置奖池进入下一期
+    p.sold = Math.floor(Math.random() * p.price * 0.15);
+    p.round = (p.round || 1) + 1;
+    delete myShares[p.id];
+    renderPools();
+  }, 2200);
+}
+
+function closeWinModal() {
+  document.getElementById('winModal').classList.add('hidden-modal');
+}
+document.getElementById('winModal').addEventListener('click', e => {
+  if (e.target.id === 'winModal') closeWinModal();
+});
 
 /* ==================== 中奖记录 ==================== */
 function renderWinners() {
@@ -414,19 +623,122 @@ function renderWinners() {
   `).join('');
 }
 
+/* ==================== 实时参与动态 ==================== */
+const feedEl = document.getElementById('liveFeed');
+function pushFeed(html, important) {
+  const item = document.createElement('div');
+  item.className = 'feed-item bg-panel/90 backdrop-blur border ' + (important ? 'border-gold/50' : 'border-line') + ' rounded-xl px-3 py-2 text-xs text-gray-300 shadow-lg';
+  item.innerHTML = html;
+  feedEl.prepend(item);
+  while (feedEl.children.length > 3) feedEl.lastChild.remove();
+  setTimeout(() => { item.style.transition = 'opacity .6s'; item.style.opacity = '0'; setTimeout(() => item.remove(), 600); }, important ? 9000 : 6000);
+}
+
+/* 其他玩家模拟参与 */
+function simulateJoin() {
+  const available = pools.filter(p => p.price - p.sold > 20);
+  if (!available.length) return;
+  const p = pick(available);
+  const n = Math.ceil(Math.random() * 12);
+  p.sold = Math.min(p.price, p.sold + n);
+  renderPools();
+  pushFeed(`🎫 <b class="text-gold">${randAddr()}</b> 参与 ${p.icon} <b>${n}</b> 份`);
+  if (p.sold >= p.price) startDraw(p, false);
+}
+
+/* ==================== 跑马灯 ==================== */
+function renderTicker() {
+  const items = [];
+  for (let i = 0; i < 8; i++) {
+    const p = pick(pools);
+    items.push(`<span class="inline-flex items-center gap-1 mx-5">🎫 <b class="text-gold">${randAddr()}</b> 参与了 ${p.icon} ${p.name} × ${Math.ceil(Math.random() * 10)} 份</span>`);
+  }
+  const half = items.join('');
+  document.getElementById('ticker').innerHTML = half + half;
+}
+
+/* ==================== 彩带 ==================== */
+const canvas = document.getElementById('confettiCanvas');
+const ctx = canvas.getContext('2d');
+let pieces = [];
+function resizeCanvas() { canvas.width = innerWidth; canvas.height = innerHeight; }
+resizeCanvas();
+addEventListener('resize', resizeCanvas);
+
+function spawnConfetti(count, spread) {
+  const colors = ['#F5C518', '#FF8A00', '#FFFFFF', '#FFE66D', '#FFB347'];
+  for (let i = 0; i < count; i++) {
+    pieces.push({
+      x: innerWidth / 2 + (Math.random() - 0.5) * innerWidth * spread,
+      y: innerHeight * 0.35,
+      vx: (Math.random() - 0.5) * 12,
+      vy: Math.random() * -11 - 4,
+      w: 5 + Math.random() * 6,
+      h: 8 + Math.random() * 6,
+      c: pick(colors),
+      r: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.25,
+      life: 130 + Math.random() * 60
+    });
+  }
+  if (!confettiRunning) { confettiRunning = true; requestAnimationFrame(confettiTick); }
+}
+let confettiRunning = false;
+function confettiTick() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  pieces = pieces.filter(p => p.life > 0 && p.y < innerHeight + 40);
+  pieces.forEach(p => {
+    p.vy += 0.28; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life--;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.r);
+    ctx.globalAlpha = Math.min(1, p.life / 40);
+    ctx.fillStyle = p.c;
+    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    ctx.restore();
+  });
+  if (pieces.length) requestAnimationFrame(confettiTick);
+  else { confettiRunning = false; ctx.clearRect(0, 0, canvas.width, canvas.height); }
+}
+function miniConfetti() { spawnConfetti(50, 0.35); }
+function bigConfetti() {
+  spawnConfetti(160, 0.7);
+  setTimeout(() => spawnConfetti(120, 0.9), 350);
+  setTimeout(() => spawnConfetti(100, 0.8), 750);
+}
+
 /* ==================== 钱包连接（演示） ==================== */
 const connectBtn = document.getElementById('connectBtn');
 connectBtn.addEventListener('click', () => {
   if (!connected) {
     connected = true;
-    connectBtn.textContent = '0x7a3f...9e21';
+    connectBtn.textContent = MY_ADDR;
     connectBtn.classList.remove('gold-grad');
     connectBtn.classList.add('bg-panel', 'border', 'border-gold/40', 'text-gold');
     showToast('✅ 钱包已连接（演示模式，未发起真实交易）');
+    miniConfetti();
   } else {
     showToast('已连接 · 点击奖池按钮即可参与（演示）');
   }
 });
+function pulseConnectBtn() {
+  connectBtn.classList.add('glow-pulse');
+  setTimeout(() => connectBtn.classList.remove('glow-pulse'), 1600);
+}
+
+/* ==================== 移动端菜单 ==================== */
+const menuBtn = document.getElementById('menuBtn');
+const mobileMenu = document.getElementById('mobileMenu');
+menuBtn.addEventListener('click', () => {
+  const open = mobileMenu.classList.toggle('open');
+  document.getElementById('menuIconOpen').classList.toggle('hidden', open);
+  document.getElementById('menuIconClose').classList.toggle('hidden', !open);
+});
+document.querySelectorAll('.mob-link').forEach(a => a.addEventListener('click', () => {
+  mobileMenu.classList.remove('open');
+  document.getElementById('menuIconOpen').classList.remove('hidden');
+  document.getElementById('menuIconClose').classList.add('hidden');
+}));
 
 /* ==================== FAQ 折叠 ==================== */
 document.querySelectorAll('.faq-toggle').forEach(btn => {
@@ -437,6 +749,12 @@ document.querySelectorAll('.faq-toggle').forEach(btn => {
     arrow.style.transform = body.classList.contains('hidden') ? '' : 'rotate(180deg)';
   });
 });
+
+/* ==================== 滚动渐入 ==================== */
+const revealObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); revealObserver.unobserve(e.target); } });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 
 /* ==================== 数字滚动 ==================== */
 function animateCount(el) {
@@ -456,6 +774,13 @@ const counterObserver = new IntersectionObserver(entries => {
 }, { threshold: 0.5 });
 document.querySelectorAll('[data-count]').forEach(el => counterObserver.observe(el));
 
+/* ==================== 返回顶部 ==================== */
+const backTop = document.getElementById('backTop');
+addEventListener('scroll', () => {
+  backTop.classList.toggle('hide', scrollY < 500);
+});
+backTop.addEventListener('click', () => scrollTo({ top: 0, behavior: 'smooth' }));
+
 /* ==================== Toast ==================== */
 let toastTimer;
 function showToast(msg) {
@@ -469,6 +794,8 @@ function showToast(msg) {
 /* ==================== 初始化 ==================== */
 renderPools();
 renderWinners();
+renderTicker();
+setInterval(simulateJoin, 4200);
 </script>
 </body>
 </html>
